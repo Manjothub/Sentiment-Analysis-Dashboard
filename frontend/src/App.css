@@ -1,0 +1,148 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #0f0f23;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.dashboard-header h1 {
+  color: #ffffff;
+  font-size: 1.6rem;
+}
+
+.card-dark {
+  background-color: #1a1a2e !important;
+  border: 1px solid #2a2a4a !important;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.card-dark .card-title {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.card-dark .card-body {
+  padding: 1.25rem;
+}
+
+.nav-pills .nav-link {
+  color: #a0a0b8;
+  border: 1px solid transparent;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.nav-pills .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #e0e0e0;
+}
+
+.nav-pills .nav-link.active {
+  background-color: #4361ee;
+  color: #ffffff;
+  border-color: #4361ee;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.overview-grid > :last-child {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 992px) {
+  .overview-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .overview-grid > :last-child {
+    grid-column: auto;
+  }
+}
+
+.btn-primary {
+  background-color: #4361ee;
+  border-color: #4361ee;
+}
+
+.btn-primary:hover {
+  background-color: #3651d4;
+  border-color: #3651d4;
+}
+
+.btn-outline-secondary {
+  color: #a0a0b8;
+  border-color: #3a3a5a;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #2a2a4a;
+  color: #e0e0e0;
+  border-color: #5a5a7a;
+}
+
+.btn-outline-warning {
+  color: #f39c12;
+  border-color: #f39c12;
+}
+
+.form-check-input {
+  background-color: #2a2a4a;
+  border-color: #3a3a5a;
+}
+
+.form-check-input:checked {
+  background-color: #4361ee;
+  border-color: #4361ee;
+}
+
+textarea.form-control {
+  resize: vertical;
+  min-height: 120px;
+  background-color: #1a1a2e;
+  color: #e0e0e0;
+  border-color: #3a3a5a;
+}
+
+textarea.form-control:focus {
+  border-color: #4361ee;
+  box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+  background-color: #1a1a2e;
+  color: #e0e0e0;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a2e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3a3a5a;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5a5a7a;
+}

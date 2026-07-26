@@ -1,0 +1,88 @@
+# =============================================================================
+# Sentiment Analysis Dashboard - Git Ignore Configuration
+# =============================================================================
+
+# Environment variables
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+*.egg
+.eggs/
+
+# Virtual Environment
+venv/
+env/
+.venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Datasets (raw data is large)
+dataset/processed/
+
+# Model files (too large for git)
+ml_models/checkpoints/
+ml_models/saved_models/
+ml_models/training/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# pytest
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# Distribution
+dist/
+*.tar.gz
+
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Docker
+.docker/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Flask
+instance/
+
+# Uploaded files
+uploads/
+
+dataset/
+*.csv

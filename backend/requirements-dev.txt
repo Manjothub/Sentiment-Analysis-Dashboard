@@ -1,0 +1,26 @@
+# =============================================================================
+# Sentiment Analysis Dashboard - Development Dependencies
+# =============================================================================
+# Target: Python 3.13
+# These packages are NOT required at runtime.
+# Install with: pip install -r requirements-dev.txt
+# =============================================================================
+
+# Testing
+pytest>=8.0.0
+
+# Code Quality
+black>=24.0.0
+isort>=5.13.0
+flake8>=7.0.0
+mypy>=1.8.0
+pre-commit>=3.6.0
+
+# Notebooks (development / experimentation only)
+jupyter>=1.0.0
+notebook>=7.0.0
+jupyterlab>=4.0.0
+ipykernel>=6.29.0
+
+# Production Server (Unix-only; use waitress on Windows)
+gunicorn>=21.2.0
