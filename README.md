@@ -171,7 +171,28 @@ CREATE DATABASE sentiment_dashboard;
 \q
 ```
 
-### 5. Train the ML Model (or Skip to Use Fallback)
+### 5. Download Datasets
+
+These datasets are **not included** in the repository.
+
+| Dataset | Description | Source |
+|---------|-------------|--------|
+| Amazon Fine Food Reviews | ~500K Amazon food product reviews with ratings | [Kaggle: snap/amazon-fine-food-reviews](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews) |
+| Twitter Sentiment140 | ~1.6M labeled tweets for sentiment training | [Sentiment140](http://help.sentiment140.com/for-students/) |
+
+Place downloaded files in:
+
+```
+dataset/
+├── amazon-reviews/
+│   └── Reviews.csv
+└── twitter-sentiment/
+    └── training.1600000.processed.noemoticon.csv
+```
+
+> **Note:** The preprocessing scripts expect these exact filenames.
+
+### 6. Train the ML Model (or Skip to Use Fallback)
 
 The `ml_models/saved_models/` folder is empty. You must train the model before using `/api/predict`.
 
@@ -194,7 +215,7 @@ Output:
 - Checkpoints in `../ml_models/checkpoints/`
 - Logs in `backend/logs/`
 
-### 6. Frontend Setup
+### 7. Frontend Setup
 
 Open a **new terminal** (keep the backend venv active for later):
 
@@ -668,8 +689,17 @@ pip install -r requirements.txt --force-reinstall
 
 ### 4. Dataset Not Found
 
+Datasets are **not included** in this repository. Download them first:
+
+- **Amazon Reviews**: [Kaggle: snap/amazon-fine-food-reviews](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews)
+- **Twitter Sentiment140**: [Sentiment140](http://help.sentiment140.com/for-students/)
+
+Place files in:
+- `dataset/amazon-reviews/Reviews.csv`
+- `dataset/twitter-sentiment/training.1600000.processed.noemoticon.csv`
+
+Then preprocess:
 ```cmd
-:: Ensure preprocessing was run first
 cd backend
 python scripts/run_preprocessing.py --amazon-nrows 10000
 ```
