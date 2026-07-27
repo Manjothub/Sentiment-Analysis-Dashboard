@@ -105,13 +105,9 @@ def _register_services(app: Flask) -> None:
         from app.services.ml_pipeline.topic_model import TopicModeler
 
         # Determine model path
-        model_path = app.config.get('MODEL_PATH', None)
-        if not model_path or not os.path.exists(model_path):
-            model_path = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)),
-                '..', 'ml_models', 'saved_models'
-            )
-            model_path = os.path.abspath(model_path)
+        model_path = app.config.get('MODEL_PATH', 'distilbert-base-uncased-finetuned-sst-2-english')
+        if model_path and not os.path.exists(model_path) and '/' not in model_path and '\\' in model_path:
+            model_path = 'distilbert-base-uncased-finetuned-sst-2-english'
 
         # Initialize services
         sentiment_service = SentimentService(model_path)

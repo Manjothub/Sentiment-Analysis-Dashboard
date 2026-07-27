@@ -6,9 +6,9 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import create_app
-from models import db
-from models.database import Product, Review, Sentiment
-from services.nlp_service import SentimentAnalyzer
+from app.database import db
+from app.models import Product, Review, SentimentResult
+from app.services.nlp_service import SentimentAnalyzer
 
 
 def seed_from_csv(app, csv_path, sample_size=500):
@@ -28,8 +28,8 @@ def seed_from_csv(app, csv_path, sample_size=500):
             if not Product.query.get(pid):
                 row = df[df['ProductId'] == pid].iloc[0]
                 product = Product(
-                    id=pid,
-                    name=str(row.get('Summary', pid))[:100] or f"Product-{pid[:8]}",
+                    product_id=str(pid),
+                    product_name=str(row.get('Summary', pid))[:100] or f"Product-{str(pid)[:8]}",
                     category='general'
                 )
                 db.session.add(product)
@@ -46,13 +46,14 @@ def seed_from_csv(app, csv_path, sample_size=500):
                     continue
 
                 review = Review(
-                    product_id=row['ProductId'],
-                    user_id=str(row.get('UserId', '')),
-                    score=int(row['Score']) if pd.notna(row.get('Score')) else None,
+                    product_id=str(row['ProductId']),
+                    reviewer_name=str(row.get('UserId', '')),
+                    raw_rating=int(row['Score']) if pd.notna(row.get('Score')) else None,
                     summary=str(row.get('Summary', ''))[:200],
-                    text=text,
+                    review_text=text,
+                    cleaned_text=text,
                     source='amazon',
-                    timestamp=datetime.fromtimestamp(
+                    review_date=datetime.fromtimestamp(
                         float(row['Time']), tz=timezone.utc
                     ) if pd.notna(row.get('Time')) else datetime.now(timezone.utc)
                 )
@@ -60,9 +61,9 @@ def seed_from_csv(app, csv_path, sample_size=500):
                 db.session.flush()
 
                 result = analyzer.analyze_sentiment(text)
-                sentiment = Sentiment(
-                    review_id=review.id,
-                    label=result['label'],
+                sentiment = SentimentResult(
+                    review_id=review.review_id,
+                    predicted_sentiment=result['label'],
                     positive_score=result['positive_score'],
                     negative_score=result['negative_score'],
                     neutral_score=result['neutral_score'],

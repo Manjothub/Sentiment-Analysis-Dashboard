@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  sentimentAPI, trendsAPI, alertsAPI, socket,
+  sentimentAPI, trendsAPI, alertsAPI, comparativeAPI, socket,
 } from '../services/api';
 import SentimentGauge from './SentimentGauge';
 import SentimentChart from './SentimentChart';
@@ -73,7 +73,7 @@ const Dashboard = () => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const fetchAllData = useCallback(async (retryCount = 0) => {
+  const fetchAllData = useCallback(async (isManual = false, retryCount = 0) => {
     try {
       setError(null);
       const [statsRes, trendsRes, aspectsRes, topicsRes, alertsRes, reviewRes, modelRes] =
@@ -89,7 +89,7 @@ const Dashboard = () => {
       
       if (statsRes) {
         setStats(statsRes.data);
-        addToast('Dashboard data refreshed', 'success');
+        if (isManual) addToast('Dashboard data refreshed', 'success');
       }
       if (trendsRes) setTrendData(trendsRes.data.trends || []);
       if (aspectsRes) setAspects(aspectsRes.data || {});
@@ -101,7 +101,7 @@ const Dashboard = () => {
       console.error('Failed to fetch dashboard data:', err);
       setError('Failed to load dashboard data. Please check your connection and try again.');
       if (retryCount < 3) {
-        setTimeout(() => fetchAllData(retryCount + 1), 2000 * (retryCount + 1));
+        setTimeout(() => fetchAllData(isManual, retryCount + 1), 2000 * (retryCount + 1));
       }
     } finally {
       setLoading(false);
@@ -118,18 +118,33 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    fetchAllData();
+    fetchAllData(false);
     fetchAlertSummary();
   }, [fetchAllData, fetchAlertSummary]);
 
-  useEffect(() => {
-    if (!autoRefresh) return;
-    const interval = setInterval(() => {
-      fetchAllData();
-      fetchAlertSummary();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [autoRefresh, fetchAllData, fetchAlertSummary]);
+   useEffect(() => {
+     if (!autoRefresh) return;
+     const interval = setInterval(() => {
+       fetchAllData(false);
+       fetchAlertSummary();
+     }, 30000);
+     return () => clearInterval(interval);
+   }, [autoRefresh, fetchAllData, fetchAlertSummary]);
+
+   useEffect(() => {
+     if (activeTab !== 'compare') return;
+     const fetchComparison = async () => {
+       try {
+         const res = await comparativeAPI.compare({ product_id: 'all' });
+         if (res.data && res.data.product) {
+           setComparison(res.data);
+         }
+       } catch (err) {
+         console.error('Comparison fetch failed:', err);
+       }
+     };
+     fetchComparison();
+   }, [activeTab]);
 
   useEffect(() => {
     const onNewReview = (data) => {
@@ -272,49 +287,51 @@ const Dashboard = () => {
     return (
       <div className="card card-dark">
         <div className="card-body">
-          <h5 className="card-title">Model Status</h5>
+          <h5 className="card-title">
+            <FiCpu className="text-primary" /> Model Status
+          </h5>
           <div className="row g-3">
             <div className="col-md-4">
-              <div className="p-3 rounded" style={{ backgroundColor: sentiment.loaded ? 'rgba(46, 204, 113, 0.15)' : 'rgba(231, 76, 60, 0.15)' }}>
-                <div className="d-flex align-items-center gap-2 mb-2">
-                  <FiCpu style={{ color: sentiment.loaded ? '#2ecc71' : '#e74c3c' }} />
-                  <strong>Sentiment</strong>
+              <div className="p-3 rounded-3" style={{ backgroundColor: sentiment.loaded ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <span className="fw-bold" style={{ color: '#f8fafc' }}>Sentiment Model</span>
+                  <FiCpu style={{ color: sentiment.loaded ? '#10b981' : '#ef4444' }} />
                 </div>
-                <small className="text-muted d-block">DistilBERT</small>
-                <small className="text-muted d-block">Device: {sentiment.device || 'unknown'}</small>
-                {sentiment.version && <small className="text-muted d-block">Version: {sentiment.version}</small>}
-                <div className="mt-2">
-                  <span className="badge" style={{ backgroundColor: sentiment.loaded ? '#2ecc71' : '#e74c3c' }}>
-                    {sentiment.loaded ? 'Loaded' : 'Not Loaded'}
+                <small className="d-block" style={{ color: '#cbd5e1', fontWeight: 500 }}>distilbert-base-uncased-finetuned-sst-2-english</small>
+                <small className="d-block mt-1" style={{ color: '#94a3b8' }}>Device: {sentiment.device || 'cpu'}</small>
+                <div className="mt-3">
+                  <span className="badge px-2.5 py-1.5" style={{ backgroundColor: sentiment.loaded ? '#10b981' : '#ef4444', color: '#ffffff' }}>
+                    {sentiment.loaded ? 'Loaded & Active' : 'Not Loaded'}
                   </span>
                 </div>
               </div>
             </div>
             <div className="col-md-4">
-              <div className="p-3 rounded" style={{ backgroundColor: aspect.loaded ? 'rgba(46, 204, 113, 0.15)' : 'rgba(243, 156, 18, 0.15)' }}>
-                <div className="d-flex align-items-center gap-2 mb-2">
-                  <FiCpu style={{ color: aspect.loaded ? '#2ecc71' : '#f39c12' }} />
-                  <strong>Aspect Extraction</strong>
+              <div className="p-3 rounded-3" style={{ backgroundColor: aspect.loaded ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <span className="fw-bold" style={{ color: '#f8fafc' }}>Aspect Extraction</span>
+                  <FiCpu style={{ color: aspect.loaded ? '#10b981' : '#f59e0b' }} />
                 </div>
-                <small className="text-muted d-block">facebook/bart-large-mnli</small>
-                <div className="mt-2">
-                  <span className="badge" style={{ backgroundColor: aspect.loaded ? '#2ecc71' : '#f39c12' }}>
-                    {aspect.loaded ? 'Loaded' : 'Fallback Mode'}
+                <small className="d-block" style={{ color: '#cbd5e1', fontWeight: 500 }}>facebook/bart-large-mnli</small>
+                <small className="d-block mt-1" style={{ color: '#94a3b8' }}>Zero-shot Pipeline</small>
+                <div className="mt-3">
+                  <span className="badge px-2.5 py-1.5" style={{ backgroundColor: aspect.loaded ? '#10b981' : '#f59e0b', color: '#ffffff' }}>
+                    {aspect.loaded ? 'Loaded' : 'Fallback Engine'}
                   </span>
                 </div>
               </div>
             </div>
             <div className="col-md-4">
-              <div className="p-3 rounded" style={{ backgroundColor: topic.loaded ? 'rgba(46, 204, 113, 0.15)' : 'rgba(243, 156, 18, 0.15)' }}>
-                <div className="d-flex align-items-center gap-2 mb-2">
-                  <FiCpu style={{ color: topic.loaded ? '#2ecc71' : '#f39c12' }} />
-                  <strong>Topic Modeling</strong>
+              <div className="p-3 rounded-3" style={{ backgroundColor: topic.loaded ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <span className="fw-bold" style={{ color: '#f8fafc' }}>Topic Modeling</span>
+                  <FiCpu style={{ color: topic.loaded ? '#10b981' : '#f59e0b' }} />
                 </div>
-                <small className="text-muted d-block">BERTopic</small>
-                {topic.num_topics > 0 && <small className="text-muted d-block">Topics: {topic.num_topics}</small>}
-                <div className="mt-2">
-                  <span className="badge" style={{ backgroundColor: topic.loaded ? '#2ecc71' : '#f39c12' }}>
-                    {topic.loaded ? 'Fitted' : 'Not Fitted'}
+                <small className="d-block" style={{ color: '#cbd5e1', fontWeight: 500 }}>BERTopic Engine</small>
+                <small className="d-block mt-1" style={{ color: '#94a3b8' }}>Topics Identified: {topic.num_topics || 0}</small>
+                <div className="mt-3">
+                  <span className="badge px-2.5 py-1.5" style={{ backgroundColor: topic.loaded ? '#10b981' : '#f59e0b', color: '#ffffff' }}>
+                    {topic.loaded ? 'Fitted' : 'Active'}
                   </span>
                 </div>
               </div>
@@ -373,7 +390,7 @@ const Dashboard = () => {
               Auto-refresh
             </label>
           </div>
-          <button className="btn btn-outline-secondary btn-sm" onClick={() => fetchAllData()}>
+          <button className="btn btn-outline-secondary btn-sm" onClick={() => fetchAllData(true)}>
             <FiRefreshCw className="me-1" /> Refresh
           </button>
           <button className="btn btn-outline-warning btn-sm" onClick={handleCheckAlerts}>
@@ -409,25 +426,25 @@ const Dashboard = () => {
               />
               <div className="row text-center mt-3 g-2">
                 <div className="col-4">
-                  <div className="p-2 rounded" style={{ backgroundColor: 'rgba(46, 204, 113, 0.15)' }}>
-                    <small className="text-muted">Positive</small>
-                    <h4 className="mb-0" style={{ color: '#2ecc71' }}>
+                  <div className="p-2.5 rounded-3" style={{ backgroundColor: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    <small className="d-block fw-semibold mb-1" style={{ color: '#cbd5e1' }}>Positive</small>
+                    <h4 className="mb-0 fw-bold" style={{ color: '#10b981' }}>
                       {stats?.sentiment_distribution?.positive || 0}
                     </h4>
                   </div>
                 </div>
                 <div className="col-4">
-                  <div className="p-2 rounded" style={{ backgroundColor: 'rgba(231, 76, 60, 0.15)' }}>
-                    <small className="text-muted">Negative</small>
-                    <h4 className="mb-0" style={{ color: '#e74c3c' }}>
+                  <div className="p-2.5 rounded-3" style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                    <small className="d-block fw-semibold mb-1" style={{ color: '#cbd5e1' }}>Negative</small>
+                    <h4 className="mb-0 fw-bold" style={{ color: '#ef4444' }}>
                       {stats?.sentiment_distribution?.negative || 0}
                     </h4>
                   </div>
                 </div>
                 <div className="col-4">
-                  <div className="p-2 rounded" style={{ backgroundColor: 'rgba(243, 156, 18, 0.15)' }}>
-                    <small className="text-muted">Neutral</small>
-                    <h4 className="mb-0" style={{ color: '#f39c12' }}>
+                  <div className="p-2.5 rounded-3" style={{ backgroundColor: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                    <small className="d-block fw-semibold mb-1" style={{ color: '#cbd5e1' }}>Neutral</small>
+                    <h4 className="mb-0 fw-bold" style={{ color: '#f59e0b' }}>
                       {stats?.sentiment_distribution?.neutral || 0}
                     </h4>
                   </div>

@@ -31,19 +31,20 @@ from app.utils.logger import get_logger
 logger = get_logger(__name__)
 
 # Constants
-NUM_LABELS = 3
-ID2LABEL = {0: 'negative', 1: 'neutral', 2: 'positive'}
-LABEL2ID = {'negative': 0, 'neutral': 1, 'positive': 2}
+DEFAULT_MODEL_NAME = 'distilbert-base-uncased-finetuned-sst-2-english'
+NUM_LABELS = 2
+ID2LABEL = {0: 'negative', 1: 'positive'}
+LABEL2ID = {'negative': 0, 'positive': 1}
 
 # Paths
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-DEFAULT_MODEL_DIR = os.path.join(PROJECT_ROOT, 'ml_models', 'saved_models')
+DEFAULT_MODEL_DIR = DEFAULT_MODEL_NAME
 
 
 class SentimentService:
     """
-    Singleton sentiment analysis service.
-    Loads the model once and reuses it across all requests.
+    Singleton sentiment analysis service using pretrained Hugging Face Transformers.
+    Loads the model once at startup and reuses it across all requests.
     """
 
     _instance = None
@@ -66,14 +67,13 @@ class SentimentService:
         Initialize the sentiment service.
 
         Args:
-            model_path: Path to trained model directory.
-                        If None, uses DEFAULT_MODEL_DIR.
+            model_path: Path or HuggingFace model ID for sentiment model.
         """
         if self._initialized:
             return
 
         self._initialized = True
-        self._model_path = model_path or DEFAULT_MODEL_DIR
+        self._model_path = model_path or DEFAULT_MODEL_NAME
 
         # Detect device
         self._detect_device()
@@ -99,10 +99,10 @@ class SentimentService:
 
     def load_model(self, model_path: Optional[str] = None) -> bool:
         """
-        Load the trained model and tokenizer from disk.
+        Load the pretrained model and tokenizer.
 
         Args:
-            model_path: Path to model directory. If None, uses existing path.
+            model_path: Path or Hugging Face model identifier.
 
         Returns:
             True if model loaded successfully, False otherwise.
@@ -110,46 +110,42 @@ class SentimentService:
         if model_path:
             self._model_path = model_path
 
-        if not self._model_path or not os.path.exists(self._model_path):
-            logger.warning(f"Model not found at: {self._model_path}")
-            self._is_loaded = False
-            return False
+        # If model_path is a local path that doesn't exist, fall back to DEFAULT_MODEL_NAME
+        if self._model_path and not os.path.exists(self._model_path) and '/' not in self._model_path and '\\' in self._model_path:
+            self._model_path = DEFAULT_MODEL_NAME
 
         try:
-            logger.info(f"Loading model from: {self._model_path}")
+            logger.info(f"Loading pretrained model: {self._model_path}")
 
-            # Load tokenizer
+            # Load tokenizer and model from Hugging Face hub or local path
             self._tokenizer = AutoTokenizer.from_pretrained(self._model_path)
-
-            # Load model
-            self._model = AutoModelForSequenceClassification.from_pretrained(
-                self._model_path,
-                num_labels=NUM_LABELS,
-                id2label=ID2LABEL,
-                label2id=LABEL2ID,
-                torch_dtype=torch.float16 if self._device.type == 'cuda' else torch.float32
-            )
+            self._model = AutoModelForSequenceClassification.from_pretrained(self._model_path)
 
             # Move model to device
             self._model = self._model.to(self._device)
             self._model.eval()
 
-            # Create pipeline for convenience
-            self._classifier = pipeline(
-                'sentiment-analysis',
-                model=self._model,
-                tokenizer=self._tokenizer,
-                device=self._device,
-                return_all_scores=True,
-                function_to_apply='softmax'
-            )
-
             self._is_loaded = True
-            logger.info("Model loaded successfully")
+            logger.info("Model loaded successfully into memory.")
             return True
 
         except Exception as e:
-            logger.error(f"Failed to load model: {e}")
+            logger.error(f"Failed to load model '{self._model_path}': {e}")
+            # Attempt fallback to default HF model if custom path failed
+            if self._model_path != DEFAULT_MODEL_NAME:
+                try:
+                    logger.info(f"Attempting fallback to default Hugging Face model: {DEFAULT_MODEL_NAME}")
+                    self._model_path = DEFAULT_MODEL_NAME
+                    self._tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL_NAME)
+                    self._model = AutoModelForSequenceClassification.from_pretrained(DEFAULT_MODEL_NAME)
+                    self._model = self._model.to(self._device)
+                    self._model.eval()
+                    self._is_loaded = True
+                    logger.info("Fallback model loaded successfully.")
+                    return True
+                except Exception as fallback_err:
+                    logger.error(f"Fallback model loading also failed: {fallback_err}")
+
             self._is_loaded = False
             return False
 
@@ -165,21 +161,31 @@ class SentimentService:
 
     def analyze(self, text: str) -> Dict[str, Any]:
         """
-        Analyze sentiment of a single text.
+        Analyze sentiment of a single text using the pretrained Transformer model.
 
         Args:
             text: Input text to analyze
 
         Returns:
-            Dictionary with prediction results
+            Dictionary with prediction results (predicted_sentiment, positive_score, negative_score, neutral_score, confidence_score)
         """
         start_time = time.time()
 
         if not self.is_loaded:
             return self._fallback_analysis(text)
 
+        if not text or not text.strip():
+            return {
+                'predicted_sentiment': 'neutral',
+                'positive_score': 0.0,
+                'negative_score': 0.0,
+                'neutral_score': 1.0,
+                'confidence_score': 1.0,
+                'inference_time_ms': int((time.time() - start_time) * 1000),
+                'model_loaded': True
+            }
+
         try:
-            # Tokenize
             inputs = self._tokenizer(
                 text,
                 return_tensors='pt',
@@ -188,23 +194,42 @@ class SentimentService:
                 padding=True
             ).to(self._device)
 
-            # Inference
             with torch.no_grad():
                 outputs = self._model(**inputs)
                 logits = outputs.logits
-                probabilities = torch.nn.functional.softmax(logits, dim=-1)
+                probabilities = torch.nn.functional.softmax(logits, dim=-1)[0].cpu().numpy()
 
-            # Get predictions
-            probs = probabilities[0].cpu().numpy()
-            predicted_class = int(np.argmax(probs))
-            confidence = float(probs[predicted_class])
+            # Handle 2-class output (SST-2: 0=NEGATIVE, 1=POSITIVE)
+            if len(probabilities) == 2:
+                neg_score = float(probabilities[0])
+                pos_score = float(probabilities[1])
+                diff = abs(pos_score - neg_score)
+
+                if diff < 0.15:
+                    predicted_sentiment = 'neutral'
+                    confidence = round(1.0 - diff, 4)
+                elif pos_score > neg_score:
+                    predicted_sentiment = 'positive'
+                    confidence = round(pos_score, 4)
+                else:
+                    predicted_sentiment = 'negative'
+                    confidence = round(neg_score, 4)
+
+                neu_score = round(max(0.0, 1.0 - diff), 4)
+            else:
+                pred_class = int(np.argmax(probabilities))
+                confidence = float(probabilities[pred_class])
+                predicted_sentiment = ID2LABEL.get(pred_class, 'neutral')
+                pos_score = float(probabilities[LABEL2ID.get('positive', 1)])
+                neg_score = float(probabilities[LABEL2ID.get('negative', 0)])
+                neu_score = 0.0
 
             result = {
-                'predicted_sentiment': ID2LABEL[predicted_class],
-                'positive_score': float(probs[LABEL2ID['positive']]),
-                'negative_score': float(probs[LABEL2ID['negative']]),
-                'neutral_score': float(probs[LABEL2ID['neutral']]),
-                'confidence_score': round(confidence, 4),
+                'predicted_sentiment': predicted_sentiment,
+                'positive_score': round(pos_score, 4),
+                'negative_score': round(neg_score, 4),
+                'neutral_score': neu_score,
+                'confidence_score': confidence,
                 'inference_time_ms': int((time.time() - start_time) * 1000),
                 'model_loaded': True
             }
@@ -271,19 +296,41 @@ class SentimentService:
                 probabilities = torch.nn.functional.softmax(logits, dim=-1)
 
             probs = probabilities.cpu().numpy()
-            predicted_classes = np.argmax(probs, axis=1)
-
             batch_time = (time.time() - start_time) * 1000
-            per_item_time = batch_time / len(texts)
+            per_item_time = batch_time / max(len(texts), 1)
 
             results = []
             for i, text in enumerate(texts):
+                if len(probs[i]) == 2:
+                    neg_score = float(probs[i][0])
+                    pos_score = float(probs[i][1])
+                    diff = abs(pos_score - neg_score)
+
+                    if diff < 0.15:
+                        predicted_sentiment = 'neutral'
+                        confidence = round(1.0 - diff, 4)
+                    elif pos_score > neg_score:
+                        predicted_sentiment = 'positive'
+                        confidence = round(pos_score, 4)
+                    else:
+                        predicted_sentiment = 'negative'
+                        confidence = round(neg_score, 4)
+
+                    neu_score = round(max(0.0, 1.0 - diff), 4)
+                else:
+                    pred_class = int(np.argmax(probs[i]))
+                    confidence = float(probs[i][pred_class])
+                    predicted_sentiment = ID2LABEL.get(pred_class, 'neutral')
+                    pos_score = float(probs[i][LABEL2ID.get('positive', 1)])
+                    neg_score = float(probs[i][LABEL2ID.get('negative', 0)])
+                    neu_score = 0.0
+
                 results.append({
-                    'predicted_sentiment': ID2LABEL[int(predicted_classes[i])],
-                    'positive_score': float(probs[i][LABEL2ID['positive']]),
-                    'negative_score': float(probs[i][LABEL2ID['negative']]),
-                    'neutral_score': float(probs[i][LABEL2ID['neutral']]),
-                    'confidence_score': round(float(probs[i][predicted_classes[i]]), 4),
+                    'predicted_sentiment': predicted_sentiment,
+                    'positive_score': round(pos_score, 4),
+                    'negative_score': round(neg_score, 4),
+                    'neutral_score': neu_score,
+                    'confidence_score': round(confidence, 4),
                     'inference_time_ms': round(per_item_time, 2),
                     'model_loaded': True
                 })

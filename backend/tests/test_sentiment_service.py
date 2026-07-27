@@ -135,15 +135,13 @@ class TestSentimentService:
     def test_label_constants(self):
         """Test that label constants are correctly defined."""
         assert ID2LABEL[0] == 'negative'
-        assert ID2LABEL[1] == 'neutral'
-        assert ID2LABEL[2] == 'positive'
+        assert ID2LABEL[1] == 'positive'
         assert LABEL2ID['negative'] == 0
-        assert LABEL2ID['neutral'] == 1
-        assert LABEL2ID['positive'] == 2
+        assert LABEL2ID['positive'] == 1
 
     def test_num_labels(self):
-        """Test number of labels is 3."""
-        assert NUM_LABELS == 3
+        """Test number of labels is 2 for SST-2 model."""
+        assert NUM_LABELS == 2
 
     def test_get_sentiment_service_function(self):
         """Test module-level accessor function."""

@@ -68,35 +68,11 @@ ASPECT_SENTIMENT_KEYWORDS = {
 
 class SentimentAnalyzer:
     def __init__(self, model_path=None):
-        self.model_path = model_path
-        self.tokenizer = None
-        self.model = None
-        self.classifier = None
-        self.load_model()
+        from app.services.ml_pipeline.sentiment_service import get_sentiment_service
+        self.sentiment_service = get_sentiment_service(model_path)
 
     def load_model(self):
-        try:
-            if self.model_path:
-                self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
-                self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
-            else:
-                self.tokenizer = AutoTokenizer.from_pretrained(
-                    'distilbert-base-uncased-finetuned-sst-2-english'
-                )
-                self.model = AutoModelForSequenceClassification.from_pretrained(
-                    'distilbert-base-uncased-finetuned-sst-2-english'
-                )
-            self.classifier = pipeline(
-                'sentiment-analysis',
-                model=self.model,
-                tokenizer=self.tokenizer,
-                truncation=True,
-                max_length=128
-            )
-            return True
-        except Exception as e:
-            print(f"Model loading error: {e}")
-            return False
+        return self.sentiment_service.is_loaded
 
     def analyze_sentiment(self, text):
         if not text or not text.strip():
@@ -108,26 +84,13 @@ class SentimentAnalyzer:
                 'aspects': {}
             }
         try:
-            result = self.classifier(text[:512])
-            scores = {r['label'].lower(): r['score'] for r in result[0]}
-            pos_score = scores.get('positive', scores.get('pos', 0.0))
-            neg_score = scores.get('negative', scores.get('neg', 0.0))
-            neutral_score = max(0.0, 1.0 - pos_score - neg_score)
-
-            if pos_score > neg_score and pos_score > 0.4:
-                label = 'positive'
-            elif neg_score > pos_score and neg_score > 0.4:
-                label = 'negative'
-            else:
-                label = 'neutral'
-
+            res = self.sentiment_service.analyze(text)
             aspects = self.extract_aspects(text)
-
             return {
-                'label': label,
-                'positive_score': round(pos_score, 4),
-                'negative_score': round(neg_score, 4),
-                'neutral_score': round(neutral_score, 4),
+                'label': res.get('predicted_sentiment', 'neutral'),
+                'positive_score': res.get('positive_score', 0.0),
+                'negative_score': res.get('negative_score', 0.0),
+                'neutral_score': res.get('neutral_score', 0.0),
                 'aspects': aspects
             }
         except Exception as e:

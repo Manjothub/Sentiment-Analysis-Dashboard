@@ -1,6 +1,6 @@
 import Plot from 'react-plotly.js';
 
-const COLORS = { positive: '#2ecc71', negative: '#e74c3c', neutral: '#f39c12' };
+const COLORS = { positive: '#10b981', negative: '#ef4444', neutral: '#f59e0b' };
 
 const SentimentChart = ({ trendData = [] }) => {
   const dates = trendData.map((d) => d.date);
@@ -11,10 +11,10 @@ const SentimentChart = ({ trendData = [] }) => {
       type: 'scatter',
       mode: 'lines+markers',
       name: 'Positive',
-      line: { color: COLORS.positive, width: 2 },
-      marker: { size: 4 },
+      line: { color: COLORS.positive, width: 2.5, shape: 'spline' },
+      marker: { size: 5 },
       fill: 'tozeroy',
-      fillcolor: 'rgba(46, 204, 113, 0.1)',
+      fillcolor: 'rgba(16, 185, 129, 0.12)',
     },
     {
       x: dates,
@@ -22,10 +22,10 @@ const SentimentChart = ({ trendData = [] }) => {
       type: 'scatter',
       mode: 'lines+markers',
       name: 'Negative',
-      line: { color: COLORS.negative, width: 2 },
-      marker: { size: 4 },
+      line: { color: COLORS.negative, width: 2.5, shape: 'spline' },
+      marker: { size: 5 },
       fill: 'tozeroy',
-      fillcolor: 'rgba(231, 76, 60, 0.1)',
+      fillcolor: 'rgba(239, 68, 68, 0.12)',
     },
     {
       x: dates,
@@ -33,22 +33,22 @@ const SentimentChart = ({ trendData = [] }) => {
       type: 'scatter',
       mode: 'lines+markers',
       name: 'Neutral',
-      line: { color: COLORS.neutral, width: 2 },
-      marker: { size: 4 },
+      line: { color: COLORS.neutral, width: 2.5, shape: 'spline' },
+      marker: { size: 5 },
       fill: 'tozeroy',
-      fillcolor: 'rgba(243, 156, 18, 0.1)',
+      fillcolor: 'rgba(245, 158, 11, 0.12)',
     },
   ];
 
   const layout = {
-    height: 300,
+    height: 280,
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
-    font: { color: '#e0e0e0', family: 'Segoe UI, sans-serif' },
-    margin: { t: 20, b: 40, l: 50, r: 20 },
-    xaxis: { gridcolor: '#333', title: 'Date' },
-    yaxis: { gridcolor: '#333', title: 'Count' },
-    legend: { orientation: 'h', y: 1.1 },
+    font: { color: '#cbd5e1', family: 'Plus Jakarta Sans, sans-serif' },
+    margin: { t: 20, b: 40, l: 45, r: 20 },
+    xaxis: { gridcolor: 'rgba(255,255,255,0.06)', title: 'Date' },
+    yaxis: { gridcolor: 'rgba(255,255,255,0.06)', title: 'Count' },
+    legend: { orientation: 'h', y: 1.15, font: { color: '#f8fafc' } },
     hovermode: 'x unified',
   };
 

@@ -136,18 +136,26 @@ def acknowledge_alert(alert_id):
         return jsonify({'error': str(e)}), 500
 
 
-@alerts_bp.route('/alerts/check', methods=['GET'])
+@alerts_bp.route('/alerts/check', methods=['GET', 'POST'])
 def check_alerts():
     """
-    Check for sentiment anomalies.
+    Check for sentiment anomalies and low confidence predictions.
     
-    Query Parameters:
-        product_id (optional): Filter by product
+    Accepts both GET and POST requests.
+    Query/Body Parameters:
+        product_id (optional): Filter by product ('all' or None checks across all)
     
     Returns:
-        JSON response with any triggered alerts
+        JSON response with any triggered alerts and alert count
     """
-    product_id = request.args.get('product_id')
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or {}
+        product_id = data.get('product_id')
+    else:
+        product_id = request.args.get('product_id')
+        
+    if product_id == 'all':
+        product_id = None
     
     try:
         query = SentimentResult.query
@@ -173,6 +181,7 @@ def check_alerts():
         
         return jsonify({
             'alerts': alerts,
+            'alerts_created': len(alerts),
             'alert_count': len(alerts),
             'threshold': 0.5
         }), 200

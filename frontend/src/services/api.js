@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { io } from 'socket.io-client';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE = '/api';
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -9,7 +9,7 @@ const api = axios.create({
   timeout: 30000,
 });
 
-export const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+export const socket = io({
   transports: ['websocket', 'polling'],
   reconnection: true,
   reconnectionDelay: 1000,
@@ -40,9 +40,10 @@ export const alertsAPI = {
 };
 
 export const comparativeAPI = {
-  compare: (params) => api.get('/compare', { params }),
-  getCompetitors: (params) => api.get('/competitors', { params }),
+  compare: (params) => api.get('/comparative/competitors', { params }),
+  getCompetitors: (params) => api.get('/comparative/competitors', { params }),
   addCompetitor: (data) => api.post('/competitors', data),
+  compareProducts: (params) => api.get('/comparative/products', { params }),
   compareAspects: (params) => api.get('/compare/aspects', { params }),
 };
 

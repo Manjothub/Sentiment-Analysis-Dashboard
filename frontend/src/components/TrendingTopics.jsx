@@ -2,9 +2,9 @@ import Plot from 'react-plotly.js';
 
 const getSentimentColor = (sentiment) => {
   switch (sentiment) {
-    case 'positive': return '#2ecc71';
-    case 'negative': return '#e74c3c';
-    default: return '#f39c12';
+    case 'positive': return '#10b981';
+    case 'negative': return '#ef4444';
+    default: return '#f59e0b';
   }
 };
 
@@ -27,13 +27,13 @@ const TrendingTopics = ({ topics = [] }) => {
   ];
 
   const layout = {
-    height: 350,
+    height: 360,
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
-    font: { color: '#e0e0e0', family: 'Segoe UI, sans-serif' },
-    margin: { t: 20, b: 40, l: 120, r: 60 },
-    xaxis: { gridcolor: '#333', title: 'Frequency' },
-    yaxis: { gridcolor: '#333', automargin: true },
+    font: { color: '#cbd5e1', family: 'Plus Jakarta Sans, sans-serif' },
+    margin: { t: 20, b: 40, l: 120, r: 80 },
+    xaxis: { gridcolor: 'rgba(255,255,255,0.06)', title: 'Frequency' },
+    yaxis: { gridcolor: 'rgba(255,255,255,0.06)', automargin: true },
     hovermode: 'y',
   };
 

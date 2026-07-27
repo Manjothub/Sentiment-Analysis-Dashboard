@@ -1,14 +1,18 @@
 import { FiAlertTriangle, FiAlertCircle, FiInfo, FiCheckCircle } from 'react-icons/fi';
 
 const severityConfig = {
-  critical: { icon: FiAlertCircle, color: '#e74c3c', bg: 'rgba(231, 76, 60, 0.15)' },
-  warning: { icon: FiAlertTriangle, color: '#f39c12', bg: 'rgba(243, 156, 18, 0.15)' },
-  info: { icon: FiInfo, color: '#3498db', bg: 'rgba(52, 152, 219, 0.15)' },
+  critical: { icon: FiAlertCircle, color: '#ef4444', bg: 'rgba(239, 68, 68, 0.12)' },
+  warning: { icon: FiAlertTriangle, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)' },
+  info: { icon: FiInfo, color: '#6366f1', bg: 'rgba(99, 102, 241, 0.12)' },
 };
 
 const AlertPanel = ({ alerts = [], onAcknowledge }) => {
   const sortedAlerts = [...alerts].sort(
-    (a, b) => new Date(b.triggered_at) - new Date(a.triggered_at)
+    (a, b) => {
+      const aTime = a.triggered_at ? new Date(a.triggered_at).getTime() : 0;
+      const bTime = b.triggered_at ? new Date(b.triggered_at).getTime() : 0;
+      return bTime - aTime;
+    }
   );
 
   const formatTime = (isoStr) => {
@@ -20,8 +24,8 @@ const AlertPanel = ({ alerts = [], onAcknowledge }) => {
     <div className="alert-panel">
       {sortedAlerts.length === 0 ? (
         <div className="text-center text-muted py-4">
-          <FiCheckCircle size={24} />
-          <p className="mt-2 mb-0">No alerts. Everything looks good!</p>
+          <FiCheckCircle size={28} className="text-success mb-2" />
+          <p className="mt-2 mb-0" style={{ color: '#cbd5e1' }}>No active alerts. All sentiment metrics are healthy!</p>
         </div>
       ) : (
         sortedAlerts.slice(0, 20).map((alert) => {
@@ -30,10 +34,12 @@ const AlertPanel = ({ alerts = [], onAcknowledge }) => {
           return (
             <div
               key={alert.id}
-              className="alert-item d-flex align-items-start p-3 mb-2 rounded"
+              className="alert-item d-flex align-items-start p-3 mb-2 rounded-3"
               style={{
                 backgroundColor: config.bg,
                 borderLeft: `4px solid ${config.color}`,
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                borderLeftWidth: '4px',
                 opacity: alert.acknowledged ? 0.6 : 1,
               }}
             >
@@ -41,14 +47,14 @@ const AlertPanel = ({ alerts = [], onAcknowledge }) => {
               <div className="flex-grow-1">
                 <div className="d-flex justify-content-between align-items-start">
                   <span
-                    className="badge mb-1"
+                    className="badge mb-1 px-2 py-1"
                     style={{ backgroundColor: config.color, color: '#fff', fontSize: '0.7rem' }}
                   >
                     {alert.severity.toUpperCase()}
                   </span>
-                  <small className="text-muted">{formatTime(alert.triggered_at)}</small>
+                  <small style={{ color: '#cbd5e1', fontSize: '0.78rem' }}>{formatTime(alert.triggered_at)}</small>
                 </div>
-                <p className="mb-1" style={{ fontSize: '0.85rem' }}>
+                <p className="mb-1 fw-medium" style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
                   {alert.message}
                 </p>
                 {!alert.acknowledged && onAcknowledge && (

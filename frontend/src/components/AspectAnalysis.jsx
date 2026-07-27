@@ -8,7 +8,7 @@ const ASPECT_LABELS = {
   usability: 'Usability',
 };
 
-const ASPECT_COLORS = { positive: '#2ecc71', negative: '#e74c3c', neutral: '#f39c12' };
+const ASPECT_COLORS = { positive: '#10b981', negative: '#ef4444', neutral: '#f59e0b' };
 
 const AspectAnalysis = ({ aspects = {} }) => {
   const aspectNames = Object.keys(aspects);
@@ -36,15 +36,15 @@ const AspectAnalysis = ({ aspects = {} }) => {
   ];
 
   const layout = {
-    height: 300,
+    height: 320,
     barmode: 'group',
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
-    font: { color: '#e0e0e0', family: 'Segoe UI, sans-serif' },
-    margin: { t: 20, b: 30, l: 140, r: 80 },
-    xaxis: { gridcolor: '#333', title: 'Percentage (%)', range: [0, 100] },
-    yaxis: { gridcolor: '#333' },
-    legend: { orientation: 'h', y: 1.1 },
+    font: { color: '#cbd5e1', family: 'Plus Jakarta Sans, sans-serif' },
+    margin: { t: 20, b: 30, l: 150, r: 80 },
+    xaxis: { gridcolor: 'rgba(255,255,255,0.06)', title: 'Percentage (%)', range: [0, 100] },
+    yaxis: { gridcolor: 'rgba(255,255,255,0.06)' },
+    legend: { orientation: 'h', y: 1.15, font: { color: '#f8fafc' } },
     hovermode: 'y unified',
   };
 
